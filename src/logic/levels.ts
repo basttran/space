@@ -1,12 +1,5 @@
-import {
-  Color3,
-  Engine,
-  FreeCamera,
-  FreeCameraMouseInput,
-  KeyboardInfo,
-  Scene,
-  Vector3,
-} from '@babylonjs/core';
+import { Color3, Engine, Mesh, Scene, Vector3 } from '@babylonjs/core';
+import { doCreateAnimationTriggerFor } from '../assets/animations';
 import { addEnvironmentTexture } from '../assets/environment';
 import {
   addDirectionalLight,
@@ -15,21 +8,21 @@ import {
   addSpotLight,
 } from '../assets/lights';
 import { addGround, doAddBox, doAddSphere } from '../assets/meshes';
+import { addModel } from '../assets/models';
 import { addPhysics } from '../assets/physics';
 import { addPlayer } from '../assets/player';
-import { FreeCameraCustomMouseInput } from '../inputs/FreeCameraCustomMouseInput';
+import { doToggleMouseYAxis } from '../inputs/controls';
 import {
   addInterpolateValueActionTo,
   addMeshActionTo,
   addSceneActionTo,
 } from './actions';
 import { registerCollisionFrom } from './collisions';
-import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from './game';
+import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR, MODELS_FILE2 } from './game';
 import { doOnFirstIntersectionBetween, hideIntersected } from './intersections';
 import { hit } from './raycasting';
 import { doGiveColliderRedTexture } from './reactions';
 import { enablePointerLock } from './scene';
-import { doToggleMouseYAxis } from '../inputs/controls';
 
 export const loadLevel = async (scene: Scene, engine: Engine) => {
   await addPhysics(scene, GRAVITY_VECTOR);
@@ -145,49 +138,45 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .material({ name: new Color3(0.5, 0.6, 0.1), uvScale: 4 })
     .physics({ body: { mass: 0 } });
 
-  // const targets = await addModel(scene, MODELS_FILE2);
-  // targets.shift();
-  // const target = Mesh.MergeMeshes(
-  //   targets as Mesh[],
-  //   true,
-  //   true,
-  //   undefined,
-  //   false,
-  //   true
-  // );
-  // if (target) {
-  //   target.position.y = 3.5;
-  //   target.position.z = -12;
-  //   target.rotation.y = (Math.PI * 3) / 2;
-  //   createAnimation(
-  //     scene,
-  //     'rotation',
-  //     target,
-  //     'rotation.x',
-  //     [
-  //       { frame: 0, value: 0 },
-  //       { frame: 180, value: Math.PI / 2 },
-  //     ],
-  //     Animation.ANIMATIONTYPE_FLOAT,
-  //     Animation.ANIMATIONLOOPMODE_CYCLE
-  //   );
-  //   createAnimation(
-  //     scene,
-  //     'translation',
-  //     target,
-  //     'position',
-  //     [
-  //       { frame: 0, value: new Vector3(0, 3.75, -12) },
-  //       { frame: 30, value: new Vector3(0.3, 4, -12) },
-  //       { frame: 60, value: new Vector3(0.3, 3.5, -12) },
-  //       { frame: 90, value: new Vector3(0, 3, -12) },
-  //       { frame: 120, value: new Vector3(-0.3, 3.5, -12) },
-  //       { frame: 150, value: new Vector3(-0.3, 3.75, -12) },
-  //       { frame: 180, value: new Vector3(0, 3.75, -12) },
-  //     ],
-  //     Animation.ANIMATIONTYPE_VECTOR3,
-  //     Animation.ANIMATIONLOOPMODE_CYCLE
-  //   );
-  // }
+  const createAnimationTriggerFor = doCreateAnimationTriggerFor(scene);
+
+  const targets = await addModel(scene, MODELS_FILE2);
+  targets.shift();
+  const target = Mesh.MergeMeshes(
+    targets as Mesh[],
+    true,
+    true,
+    undefined,
+    false,
+    true
+  );
+  if (target) {
+    target.position.y = 3.5;
+    target.position.z = -12;
+    target.rotation.y = (Math.PI * 3) / 2;
+    const targetRotation = createAnimationTriggerFor('rotation.x')
+      .of(target)
+      .as('rotation')
+      .using('FLOAT', 'CYCLE')
+      .frames([
+        { frame: 0, value: 0 },
+        { frame: 180, value: Math.PI / 2 },
+      ]);
+    const targetMovement = createAnimationTriggerFor('position')
+      .of(target)
+      .as('translation')
+      .using('VECTOR3', 'CYCLE')
+      .frames([
+        { frame: 0, value: new Vector3(0, 3.75, -12) },
+        { frame: 30, value: new Vector3(0.3, 4, -12) },
+        { frame: 60, value: new Vector3(0.3, 3.5, -12) },
+        { frame: 90, value: new Vector3(0, 3, -12) },
+        { frame: 120, value: new Vector3(-0.3, 3.5, -12) },
+        { frame: 150, value: new Vector3(-0.3, 3.75, -12) },
+        { frame: 180, value: new Vector3(0, 3.75, -12) },
+      ]);
+    targetRotation();
+    targetMovement();
+  }
   enablePointerLock(scene, engine, hit(targetSphere.name, scene, player));
 };
