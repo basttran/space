@@ -10,35 +10,9 @@ import {
 } from '@babylonjs/core';
 
 export const buildSplatters = (scene: Scene) => {
-  const blue = new PBRMaterial('blue', scene);
-  const orange = new PBRMaterial('orange', scene);
-  const green = new PBRMaterial('green ', scene);
-  blue.roughness = 1;
-  orange.roughness = 1;
-  green.roughness = 1;
-
-  blue.albedoTexture = new Texture(
-    `${process.env.PUBLIC_URL}/textures/splatters/blue.png`,
-    scene
+  return ['blue', 'orange', 'green'].map((color) =>
+    toSplatterMaterial(scene, color)
   );
-  orange.albedoTexture = new Texture(
-    `${process.env.PUBLIC_URL}/textures/splatters/orange.png`,
-    scene
-  );
-  green.albedoTexture = new Texture(
-    `${process.env.PUBLIC_URL}/textures/splatters/green.png`,
-    scene
-  );
-
-  blue.albedoTexture.hasAlpha = true;
-  orange.albedoTexture.hasAlpha = true;
-  green.albedoTexture.hasAlpha = true;
-
-  blue.zOffset = -12;
-  orange.zOffset = -12;
-  green.zOffset = -12;
-
-  return [blue, orange, green];
 };
 
 export const hit = (name: string, scene: Scene, camera: FreeCamera) => {
@@ -73,4 +47,16 @@ export const hit = (name: string, scene: Scene, camera: FreeCamera) => {
       );
     }
   };
+};
+
+const toSplatterMaterial = (scene: Scene, splatterColor: string) => {
+  const splatterMaterial = new PBRMaterial(splatterColor, scene);
+  splatterMaterial.roughness = 1;
+  splatterMaterial.albedoTexture = new Texture(
+    `${process.env.PUBLIC_URL}/textures/splatters/${splatterColor}.png`,
+    scene
+  );
+  splatterMaterial.albedoTexture.hasAlpha = true;
+  splatterMaterial.zOffset = -0.5;
+  return splatterMaterial;
 };
