@@ -70,6 +70,80 @@ export const addBox = (
   return box;
 };
 
+// export const doAddBox = (scene: Scene) => (name: string) => {
+//   return {
+//     spatial: (spatial: BoxGeometry) => {
+//       return {
+//         options: (options?: MeshOptions) => {},
+//       };
+//     },
+//   };
+// };
+
+export const doAddBox = (scene: Scene) => (name: string) => {
+  return {
+    positions: (positions: Coordinates) => {
+      return {
+        dimensions: (dimensions: Coordinates | number) => {
+          return {
+            rotations: (rotations?: Coordinates) => {
+              return {
+                material: (material?: MeshAestheticOptions) => {
+                  return {
+                    physics: (physics?: MeshPhysicOptions) => {
+                      const box = handleBoxSpatialParameters(
+                        name,
+                        { positions, dimensions, rotations },
+                        scene
+                      );
+                      if (physics || material) {
+                        handleOptions({ physics, material }, scene, box);
+                      }
+                      return box;
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+};
+
+export const doAddSphere = (scene: Scene) => (name: string) => {
+  return {
+    positions: (positions: Coordinates) => {
+      return {
+        dimensions: (dimensions: Coordinates | number) => {
+          return {
+            rotations: (rotations?: Coordinates) => {
+              return {
+                material: (material?: MeshAestheticOptions) => {
+                  return {
+                    physics: (physics?: MeshPhysicOptions) => {
+                      const sphere = handleSphereSpatialParameters(
+                        name,
+                        { positions, dimensions, rotations },
+                        scene
+                      );
+                      if (physics || material) {
+                        handleOptions({ physics, material }, scene, sphere);
+                      }
+                      return sphere;
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+};
+
 export const addGround = (
   scene: Scene,
   name: string,

@@ -14,7 +14,7 @@ import {
   addPointLight,
   addSpotLight,
 } from '../assets/lights';
-import { addBox, addGround, addSphere } from '../assets/meshes';
+import { addGround, doAddBox, doAddSphere } from '../assets/meshes';
 import { addPhysics } from '../assets/physics';
 import { addPlayer } from '../assets/player';
 import { FreeCameraCustomMouseInput } from '../inputs/FreeCameraCustomMouseInput';
@@ -29,6 +29,7 @@ import { doOnFirstIntersectionBetween, hideIntersected } from './intersections';
 import { hit } from './raycasting';
 import { doGiveColliderRedTexture } from './reactions';
 import { enablePointerLock } from './scene';
+import { doToggleMouseYAxis } from '../inputs/controls';
 
 export const loadLevel = async (scene: Scene, engine: Engine) => {
   await addPhysics(scene, GRAVITY_VECTOR);
@@ -42,31 +43,25 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
       material: { name: 'stone', uvScale: 4 },
     }
   );
-  const actionBox = addBox(
-    scene,
-    'actionBox',
-    {
-      positions: { x: 0, y: 4, z: 15 },
-      dimensions: 4,
-    },
-    {
-      material: { name: 'metal', uvScale: 3 },
-      physics: { body: { mass: 0 } },
-    }
-  );
+
+  const addBox = doAddBox(scene);
+  const addSphere = doAddSphere(scene);
+  const actionBox = addBox('actionBox')
+    .positions({ x: 0, y: 4, z: 15 })
+    .dimensions(4)
+    .rotations()
+    .material({ name: 'metal', uvScale: 3 })
+    .physics({ body: { mass: 0 } });
+
+  const collateralBox = addBox('collateralBox')
+    .positions({ x: 6, y: 4, z: 15 })
+    .dimensions(4)
+    .rotations()
+    .material({ name: 'metal', uvScale: 3 })
+    .physics();
+
   actionBox.checkCollisions = true;
 
-  const collateralBox = addBox(
-    scene,
-    'collateralBox',
-    {
-      positions: { x: 6, y: 4, z: 15 },
-      dimensions: 4,
-    },
-    {
-      material: { name: 'metal', uvScale: 3 },
-    }
-  );
   const SHRUNK_BOX_SCALE = new Vector3(0.5, 0.5, 0.5);
 
   addMeshActionTo(scene)
@@ -76,17 +71,12 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .for([actionBox, collateralBox])
     .to(SHRUNK_BOX_SCALE);
 
-  const interpolateActionBox = addBox(
-    scene,
-    'collidingBox',
-    {
-      positions: { x: -6, y: 4, z: 15 },
-      dimensions: 4,
-    },
-    {
-      material: { name: new Color3(0, 0, 1), uvScale: 3 },
-    }
-  );
+  const interpolateActionBox = addBox('interpolateActionBox')
+    .positions({ x: -6, y: 4, z: 15 })
+    .dimensions(4)
+    .rotations()
+    .material({ name: new Color3(0, 0, 1), uvScale: 3 })
+    .physics();
 
   addInterpolateValueActionTo(scene)
     .when('OnRightPickTrigger')
@@ -95,22 +85,6 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .for(interpolateActionBox)
     .to(new Vector3(Math.PI / 4, Math.PI / 4, Math.PI / 4))
     .within(3000);
-
-  const doToggleMouseYAxis = (player: FreeCamera) => {
-    let inverted = true;
-    return (e: KeyboardInfo) => {
-      if (e.event.key === '²' && e.type === 1) {
-        if (inverted) {
-          player.inputs.removeByType('FreeCameraCustomMouseInput');
-          player.inputs.add(new FreeCameraMouseInput(false));
-        } else {
-          player.inputs.removeByType('FreeCameraMouseInput');
-          player.inputs.add(new FreeCameraCustomMouseInput(false));
-        }
-        inverted = !inverted;
-      }
-    };
-  };
 
   const player = addPlayer(scene, new Vector3(0, 4, -18));
   scene.onKeyboardObservable.add(doToggleMouseYAxis(player));
@@ -133,71 +107,43 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .for(collateralBox)
     .by(0.02);
 
-  const collidingBox = addBox(
-    scene,
-    'collidingBox',
-    {
-      positions: { x: -12, y: 12, z: 15 },
-      dimensions: 4,
-    },
-    {
-      material: { name: new Color3(0, 0, 1), uvScale: 3 },
-      physics: { body: { mass: 1, restitution: 0.5 } },
-    }
-  );
+  const collidingBox = addBox('collidingBox')
+    .positions({ x: -12, y: 12, z: 15 })
+    .dimensions(4)
+    .rotations()
+    .material({ name: new Color3(0, 0, 1), uvScale: 3 })
+    .physics({ body: { mass: 1, restitution: 0.5 } });
+
   collidingBox.checkCollisions = true;
 
   registerCollisionFrom(collidingBox)
     .on(ground)
     .triggers(doGiveColliderRedTexture(scene));
 
-  const winSphere = addSphere(
-    scene,
-    'winSphere',
-    { positions: { x: 12, y: 20, z: 15 }, dimensions: 2 },
-    {
-      material: { name: 'stone', uvScale: 2 },
-      physics: { body: { mass: 1, restitution: 1 } },
-    }
-  );
+  const winSphere = addSphere('winSphere')
+    .positions({ x: 12, y: 20, z: 15 })
+    .dimensions(2)
+    .rotations()
+    .material({ name: 'stone', uvScale: 2 })
+    .physics({ body: { mass: 1, restitution: 1 } });
 
-  const winBox = addBox(
-    scene,
-    'winBox',
-    {
-      positions: { x: 12, y: 2, z: 15 },
-      dimensions: { x: 4, y: 4, z: 4 },
-    },
-    {
-      material: { name: new Color3(0, 1, 0), uvScale: 4 },
-    }
-  );
+  const winBox = addBox('winBox')
+    .positions({ x: 12, y: 2, z: 15 })
+    .dimensions({ x: 4, y: 2, z: 4 })
+    .rotations()
+    .material({ name: new Color3(0, 1, 0), uvScale: 4 })
+    .physics();
 
   winBox.visibility = 0.7;
   const onFirstIntersectionBetween = doOnFirstIntersectionBetween(scene);
   onFirstIntersectionBetween(winSphere).and(winBox).triggers(hideIntersected);
 
-  const targetSphere = addSphere(
-    scene,
-    'targetSphere',
-    {
-      positions: { x: 0, y: 2.5, z: 10 },
-      dimensions: 5,
-    },
-    {
-      physics: { body: { mass: 0 } },
-      material: { name: new Color3(0.5, 0.6, 0.1), uvScale: 4 },
-    }
-  );
-
-  // const targetSphere = MeshBuilder.CreateSphere('targetSphere', {
-  //   diameter: 3,
-  // });
-  // const targetSphereMat = new PBRMaterial('targetSphereMat', scene);
-  // targetSphereMat.roughness = 1;
-  // targetSphereMat.albedoColor = new Color3(1, 0.5, 0);
-  // targetSphere.position.y = 3;
-  // targetSphere.material = targetSphereMat;
+  const targetSphere = addSphere('targetSphere')
+    .positions({ x: 0, y: 2.5, z: 10 })
+    .dimensions(5)
+    .rotations()
+    .material({ name: new Color3(0.5, 0.6, 0.1), uvScale: 4 })
+    .physics({ body: { mass: 0 } });
 
   // const targets = await addModel(scene, MODELS_FILE2);
   // targets.shift();
