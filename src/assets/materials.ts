@@ -42,7 +42,7 @@ export const addMaterial = (
   let mat = new StandardMaterial(name, scene);
   TEXTURES_SET_DEFINITIONS.forEach((textureDefinition) => {
     const texture = new Texture(
-      `./textures/${mat.name}/${mat.name}_${textureDefinition[1]}.jpg`,
+      `${process.env.PUBLIC_URL}/textures/${mat.name}/${mat.name}_${textureDefinition[1]}.jpg`,
       scene
     );
     texture.uScale =

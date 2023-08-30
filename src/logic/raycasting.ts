@@ -17,9 +17,18 @@ export const buildSplatters = (scene: Scene) => {
   orange.roughness = 1;
   green.roughness = 1;
 
-  blue.albedoTexture = new Texture('./textures/splatters/blue.png', scene);
-  orange.albedoTexture = new Texture('./textures/splatters/orange.png', scene);
-  green.albedoTexture = new Texture('./textures/splatters/green.png', scene);
+  blue.albedoTexture = new Texture(
+    `${process.env.PUBLIC_URL}/textures/splatters/blue.png`,
+    scene
+  );
+  orange.albedoTexture = new Texture(
+    `${process.env.PUBLIC_URL}/textures/splatters/orange.png`,
+    scene
+  );
+  green.albedoTexture = new Texture(
+    `${process.env.PUBLIC_URL}/textures/splatters/green.png`,
+    scene
+  );
 
   blue.albedoTexture.hasAlpha = true;
   orange.albedoTexture.hasAlpha = true;
@@ -55,7 +64,6 @@ export const hit = (name: string, scene: Scene, camera: FreeCamera) => {
         normal,
         size: new Vector3(1, 1, 1),
       });
-      const { pickedPoint, pickedMesh } = raycastHit;
       decal.rotation.z = Math.PI / Math.random();
       decal.material = splatters[Math.floor(Math.random() * splatters.length)];
       decal.setParent(raycastHit.pickedMesh);

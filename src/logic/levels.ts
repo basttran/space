@@ -1,13 +1,9 @@
 import {
-  Animation,
   Color3,
   Engine,
   FreeCamera,
   FreeCameraMouseInput,
   KeyboardInfo,
-  Mesh,
-  MeshBuilder,
-  PBRMaterial,
   Scene,
   Vector3,
 } from '@babylonjs/core';
@@ -28,13 +24,11 @@ import {
   addSceneActionTo,
 } from './actions';
 import { registerCollisionFrom } from './collisions';
-import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR, MODELS_FILE2 } from './game';
+import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from './game';
 import { doOnFirstIntersectionBetween, hideIntersected } from './intersections';
 import { hit } from './raycasting';
 import { doGiveColliderRedTexture } from './reactions';
 import { enablePointerLock } from './scene';
-import { addModel } from '../assets/models';
-import { createAnimation } from '../assets/animations';
 
 export const loadLevel = async (scene: Scene, engine: Engine) => {
   await addPhysics(scene, GRAVITY_VECTOR);
