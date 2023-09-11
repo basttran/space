@@ -11,11 +11,17 @@ import {
   SpotLight,
   Vector3,
   Scene,
-} from "@babylonjs/core";
+} from '@babylonjs/core';
+import { Thing } from './meshes';
 
 // export const addShadowCasting = (scene: Scene, mesh: Mesh): void => {
 //   scene.shadowGenerator?.addShadowCaster(mesh);
 // };
+
+const ORIGIN = new Vector3(0, 0, 0);
+
+export const Hemispheric = (name: string, scene: Scene) =>
+  Thing(new HemisphericLight(name, ORIGIN, scene));
 
 export const addHemisphericLight = (
   scene: Scene,
@@ -24,7 +30,7 @@ export const addHemisphericLight = (
   color?: Color3,
   specular?: Color3
 ) => {
-  const light = new HemisphericLight("hemi1", position, scene);
+  const light = new HemisphericLight('hemi1', position, scene);
 
   if (color) {
     light.diffuse = color;
@@ -37,18 +43,23 @@ export const addHemisphericLight = (
   // addGizmo(scene, light);
 };
 
+export const Directional = (name: string, scene: Scene) =>
+  Thing(new DirectionalLight(name, ORIGIN, scene));
 export const addDirectionalLight = (
   scene: Scene,
   direction: Vector3,
   intensity: number,
   color?: Color3
 ) => {
-  const light = new DirectionalLight("direct1", direction, scene);
+  const light = new DirectionalLight('direct1', direction, scene);
   if (color) {
     light.diffuse = color;
   }
   light.intensity = intensity;
 };
+
+export const Point = (name: string, scene: Scene) =>
+  Thing(new PointLight(name, ORIGIN, scene));
 
 export const addPointLight = (
   scene: Scene,
@@ -56,7 +67,7 @@ export const addPointLight = (
   intensity: number,
   color?: Color3
 ) => {
-  const light = new PointLight("point1", position, scene);
+  const light = new PointLight('point1', position, scene);
 
   if (color) {
     light.diffuse = new Color3(0.4, 0.4, 0.9);
@@ -64,6 +75,8 @@ export const addPointLight = (
   light.intensity = intensity;
 };
 
+export const Spot = (name: string, scene: Scene) =>
+  Thing(new SpotLight(name, ORIGIN, ORIGIN, 0, 0, scene));
 export const addSpotLight = (
   scene: Scene,
   position: Vector3,
@@ -74,7 +87,7 @@ export const addSpotLight = (
   color?: Color3
 ) => {
   const light = new SpotLight(
-    "spot1",
+    'spot1',
     position,
     direction,
     angle,

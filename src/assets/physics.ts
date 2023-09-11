@@ -20,7 +20,7 @@ export const addPhysics = async (
   scene.enablePhysics(gravity, new CannonJSPlugin(true, 10, CANNON));
 };
 
-export const addPysics = (
+export const addPhysicsToMesh = (
   box: Mesh,
   physics: PhysicsImpostorParameters
 ): void => {

@@ -6,7 +6,7 @@ import {
   Scene,
   Tools,
   Vector3,
-} from "@babylonjs/core";
+} from '@babylonjs/core';
 
 export class FreeCameraCustomKeyboardMoveInput
   implements ICameraInput<FreeCamera>
@@ -245,7 +245,7 @@ export class FreeCameraCustomKeyboardMoveInput
    * @returns the class name
    */
   getClassName() {
-    return "FreeCameraCustomKeyboardMoveInput";
+    return 'FreeCameraCustomKeyboardMoveInput';
   }
   /** @internal */
   _onLostFocus() {
@@ -256,7 +256,7 @@ export class FreeCameraCustomKeyboardMoveInput
    * @returns the input friendly name
    */
   getSimpleName() {
-    return "keyboard";
+    return 'keyboard';
   }
   _getLocalRotation() {
     let rotation = (this.rotationSpeed * this._engine.getDeltaTime()) / 1000;

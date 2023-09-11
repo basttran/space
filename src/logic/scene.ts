@@ -19,7 +19,7 @@ export const enablePointerLock = (
 
 const setupScene = async (engine: Engine) => {
   const scene = new Scene(engine);
-  // await setupWorld(stage, engine);
+  // await loadDemo(scene, engine);
   await loadLevel(scene, engine);
   return scene;
 };

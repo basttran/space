@@ -1,182 +1,148 @@
-import { Color3, Engine, Mesh, Scene, Vector3 } from '@babylonjs/core';
-import { doCreateAnimationTriggerFor } from '../assets/animations';
-import { addEnvironmentTexture } from '../assets/environment';
 import {
-  addDirectionalLight,
-  addHemisphericLight,
-  addPointLight,
-  addSpotLight,
-} from '../assets/lights';
-import { addGround, doAddBox, doAddSphere } from '../assets/meshes';
-import { addModel } from '../assets/models';
+  DirectionalLight,
+  Engine,
+  FreeCamera,
+  Mesh,
+  PhysicsImpostorParameters,
+  Scene,
+  SpotLight,
+  Vector3,
+} from '@babylonjs/core';
+import { colorFromPosition } from '../assets/colors';
+import { addEnvironmentTexture } from '../assets/environment';
+import { Directional, Hemispheric, Point, Spot } from '../assets/lights';
+import { addMaterial } from '../assets/materials';
+import {
+  Box,
+  Ground,
+  MeshAestheticOptions,
+  checkCollisionsTo,
+  physicsTo,
+  positionTo,
+  sizeTo,
+} from '../assets/meshes';
 import { addPhysics } from '../assets/physics';
 import { addPlayer } from '../assets/player';
-import { doToggleMouseYAxis } from '../inputs/controls';
-import {
-  addInterpolateValueActionTo,
-  addMeshActionTo,
-  addSceneActionTo,
-} from './actions';
-import { registerCollisionFrom } from './collisions';
-import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR, MODELS_FILE2 } from './game';
-import { doOnFirstIntersectionBetween, hideIntersected } from './intersections';
-import { hit } from './raycasting';
-import { doGiveColliderRedTexture } from './reactions';
+import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from '../logic//game';
 import { enablePointerLock } from './scene';
 
+const GROUND_DIMENSIONS = new Vector3(50, 50, 50);
+const GROUND_TEXTURE = { name: 'stone', uvScale: 4 };
+
+const BOX_PHYSICS: PhysicsImpostorParameters = {
+  mass: 1,
+  restitution: 0.5,
+};
+const GROUND_PHYSICS: PhysicsImpostorParameters = {
+  mass: 0,
+  restitution: 0.5,
+};
+const doMaterialTo =
+  (scene: Scene) => (material: MeshAestheticOptions) => (mesh: Mesh) => {
+    addMaterial(material, scene, mesh);
+    return mesh;
+  };
+
 export const loadLevel = async (scene: Scene, engine: Engine) => {
+  const materialTo = doMaterialTo(scene);
+
   await addPhysics(scene, GRAVITY_VECTOR);
   addEnvironmentTexture(scene, ENVIRONMENT_TEXTURE_PATH);
-  const ground = addGround(
-    scene,
-    'ground',
-    { size: 40 },
+
+  Hemispheric('hemispheric', scene)
+    .set(positionTo(new Vector3(0, 12, 0)))
+    .set(intensityTo(0.5));
+
+  Directional('direction', scene)
+    .set(directionTo(new Vector3(0, -1, 0)))
+    .set(intensityTo(5));
+
+  Point('point', scene)
+    .set(positionTo(new Vector3(0, -1, 0)))
+    .set(intensityTo(5));
+
+  Spot('spot', scene)
+    .set(positionTo(new Vector3(0, 10, 0)))
+    .set(directionTo(new Vector3(0, -1, 0)))
+    .set(intensityTo(1))
+    .set(angleTo(Math.PI / 6))
+    .fold(exponentTo(10));
+
+  Ground('ground', scene)
+    .set(sizeTo(GROUND_DIMENSIONS))
+    .set(materialTo(GROUND_TEXTURE))
+    .set(checkCollisionsTo(true))
+    .set(physicsTo(GROUND_PHYSICS));
+
+  const walls = [
     {
-      physics: { body: { mass: 0, restitution: 0.5 } },
-      material: { name: 'stone', uvScale: 4 },
+      position: new Vector3(0, 3, -25.5),
+      dimensions: new Vector3(50, 6, 1),
+    },
+    {
+      position: new Vector3(0, 3, 25.5),
+      dimensions: new Vector3(50, 6, 1),
+    },
+    {
+      position: new Vector3(-25.5, 3, 0),
+      dimensions: new Vector3(1, 6, 50),
+    },
+    {
+      position: new Vector3(25.5, 3, 0),
+      dimensions: new Vector3(1, 6, 50),
+    },
+  ];
+
+  walls.map((wall, index) =>
+    Box(`wall-${index}`, scene)
+      .set(positionTo(wall.position))
+      .set(sizeTo(wall.dimensions))
+      .set(checkCollisionsTo(true))
+  );
+
+  const boxesPositions = [];
+  for (let i = -19; i < 20; i++) {
+    for (let j = -19; j < 20; j++) {
+      if (i % 5 === 0 && j % 5 === 0) {
+        boxesPositions.push({ x: i, y: j });
+      }
     }
-  );
-
-  const addBox = doAddBox(scene);
-  const addSphere = doAddSphere(scene);
-  const actionBox = addBox('actionBox')
-    .positions({ x: 0, y: 4, z: 15 })
-    .dimensions(4)
-    .rotations()
-    .material({ name: 'metal', uvScale: 3 })
-    .physics({ body: { mass: 0 } });
-
-  const collateralBox = addBox('collateralBox')
-    .positions({ x: 6, y: 4, z: 15 })
-    .dimensions(4)
-    .rotations()
-    .material({ name: 'metal', uvScale: 3 })
-    .physics();
-
-  actionBox.checkCollisions = true;
-
-  const SHRUNK_BOX_SCALE = new Vector3(0.5, 0.5, 0.5);
-
-  addMeshActionTo(scene)
-    .when('OnCenterPickTrigger')
-    .at(actionBox)
-    .set('scaling')
-    .for([actionBox, collateralBox])
-    .to(SHRUNK_BOX_SCALE);
-
-  const interpolateActionBox = addBox('interpolateActionBox')
-    .positions({ x: -6, y: 4, z: 15 })
-    .dimensions(4)
-    .rotations()
-    .material({ name: new Color3(0, 0, 1), uvScale: 3 })
-    .physics();
-
-  addInterpolateValueActionTo(scene)
-    .when('OnRightPickTrigger')
-    .at(interpolateActionBox)
-    .set('rotation')
-    .for(interpolateActionBox)
-    .to(new Vector3(Math.PI / 4, Math.PI / 4, Math.PI / 4))
-    .within(3000);
-
-  const player = addPlayer(scene, new Vector3(0, 4, -18));
-  scene.onKeyboardObservable.add(doToggleMouseYAxis(player));
-
-  addHemisphericLight(scene, new Vector3(0, 12, 0), 5);
-  addDirectionalLight(scene, new Vector3(0, -1, 0), 5);
-  addPointLight(scene, new Vector3(0, -1, 0), 5);
-  addSpotLight(
-    scene,
-    new Vector3(0, 3, -3),
-    new Vector3(0, -1, 1),
-    5,
-    Math.PI / 2,
-    20
-  );
-
-  addSceneActionTo(scene)
-    .when('OnEveryFrameTrigger')
-    .increment('rotation.z')
-    .for(collateralBox)
-    .by(0.02);
-
-  const collidingBox = addBox('collidingBox')
-    .positions({ x: -12, y: 12, z: 15 })
-    .dimensions(4)
-    .rotations()
-    .material({ name: new Color3(0, 0, 1), uvScale: 3 })
-    .physics({ body: { mass: 1, restitution: 0.5 } });
-
-  collidingBox.checkCollisions = true;
-
-  registerCollisionFrom(collidingBox)
-    .on(ground)
-    .triggers(doGiveColliderRedTexture(scene));
-
-  const winSphere = addSphere('winSphere')
-    .positions({ x: 12, y: 20, z: 15 })
-    .dimensions(2)
-    .rotations()
-    .material({ name: 'stone', uvScale: 2 })
-    .physics({ body: { mass: 1, restitution: 1 } });
-
-  const winBox = addBox('winBox')
-    .positions({ x: 12, y: 2, z: 15 })
-    .dimensions({ x: 4, y: 2, z: 4 })
-    .rotations()
-    .material({ name: new Color3(0, 1, 0), uvScale: 4 })
-    .physics();
-
-  winBox.visibility = 0.7;
-  const onFirstIntersectionBetween = doOnFirstIntersectionBetween(scene);
-  onFirstIntersectionBetween(winSphere).and(winBox).triggers(hideIntersected);
-
-  const targetSphere = addSphere('targetSphere')
-    .positions({ x: 0, y: 2.5, z: 10 })
-    .dimensions(5)
-    .rotations()
-    .material({ name: new Color3(0.5, 0.6, 0.1), uvScale: 4 })
-    .physics({ body: { mass: 0 } });
-
-  const createAnimationTriggerFor = doCreateAnimationTriggerFor(scene);
-
-  const targets = await addModel(scene, MODELS_FILE2);
-  targets.shift();
-  const target = Mesh.MergeMeshes(
-    targets as Mesh[],
-    true,
-    true,
-    undefined,
-    false,
-    true
-  );
-  if (target) {
-    target.position.y = 3.5;
-    target.position.z = -12;
-    target.rotation.y = (Math.PI * 3) / 2;
-    const targetRotation = createAnimationTriggerFor('rotation.x')
-      .of(target)
-      .as('rotation')
-      .using('FLOAT', 'CYCLE')
-      .frames([
-        { frame: 0, value: 0 },
-        { frame: 180, value: Math.PI / 2 },
-      ]);
-    const targetMovement = createAnimationTriggerFor('position')
-      .of(target)
-      .as('translation')
-      .using('VECTOR3', 'CYCLE')
-      .frames([
-        { frame: 0, value: new Vector3(0, 3.75, -12) },
-        { frame: 30, value: new Vector3(0.3, 4, -12) },
-        { frame: 60, value: new Vector3(0.3, 3.5, -12) },
-        { frame: 90, value: new Vector3(0, 3, -12) },
-        { frame: 120, value: new Vector3(-0.3, 3.5, -12) },
-        { frame: 150, value: new Vector3(-0.3, 3.75, -12) },
-        { frame: 180, value: new Vector3(0, 3.75, -12) },
-      ]);
-    targetRotation();
-    targetMovement();
   }
-  enablePointerLock(scene, engine, hit(targetSphere.name, scene, player));
+
+  boxesPositions.map((position) => {
+    const { x, y } = position;
+    return Box(`box-${x}-${y}`, scene)
+      .set(sizeTo(new Vector3(2, 4, 2)))
+      .set(positionTo(new Vector3(x, 2, y)))
+      .set(materialTo(colorFromPosition(x, y)))
+      .set(checkCollisionsTo(true))
+      .set(physicsTo(BOX_PHYSICS));
+  });
+
+  addPlayer(scene, new Vector3(0, 4, -18));
+
+  enablePointerLock(scene, engine, console.log);
+};
+
+export const directionTo =
+  (direction: Vector3) => (light: SpotLight | DirectionalLight) => {
+    light.direction = direction;
+    return light;
+  };
+export const intensityTo =
+  (intensity: number) => (light: SpotLight | DirectionalLight) => {
+    light.intensity = intensity;
+    return light;
+  };
+export const angleTo = (angle: number) => (light: SpotLight) => {
+  light.angle = angle;
+  return light;
+};
+export const exponentTo = (exponent: number) => (light: SpotLight) => {
+  light.exponent = exponent;
+  return light;
+};
+export const parentTo = (parent: Mesh | FreeCamera) => (mesh: Mesh) => {
+  mesh.parent = parent;
+  return mesh;
 };
