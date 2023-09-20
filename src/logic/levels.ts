@@ -1,56 +1,87 @@
 import {
-  DirectionalLight,
   Engine,
-  FreeCamera,
   Mesh,
   PhysicsImpostorParameters,
   Scene,
-  SpotLight,
   Vector3,
 } from '@babylonjs/core';
 import { colorFromPosition } from '../assets/colors';
 import { addEnvironmentTexture } from '../assets/environment';
-import { Directional, Hemispheric, Point, Spot } from '../assets/lights';
-import { addMaterial } from '../assets/materials';
+import {
+  Directional,
+  Hemispheric,
+  Point,
+  Spot,
+  angleTo,
+  directionTo,
+  exponentTo,
+  intensityTo,
+} from '../assets/lights';
 import {
   Box,
   Ground,
-  MeshAestheticOptions,
-  checkCollisionsTo,
-  physicsTo,
-  positionTo,
-  sizeTo,
+  Sphere,
+  doMaterialTo,
+  meshModifiers as mesh,
 } from '../assets/meshes';
 import { addPhysics } from '../assets/physics';
-import { addPlayer } from '../assets/player';
+import { doPlayerController } from '../inputs/controls';
 import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from '../logic//game';
+import { Camera, cameraModifiers as cam } from '../misc/camera';
 import { enablePointerLock } from './scene';
 
 const GROUND_DIMENSIONS = new Vector3(50, 50, 50);
 const GROUND_TEXTURE = { name: 'stone', uvScale: 4 };
-
 const BOX_PHYSICS: PhysicsImpostorParameters = {
   mass: 1,
-  restitution: 0.5,
+  restitution: 0,
 };
 const GROUND_PHYSICS: PhysicsImpostorParameters = {
   mass: 0,
-  restitution: 0.5,
+  restitution: 0,
 };
-const doMaterialTo =
-  (scene: Scene) => (material: MeshAestheticOptions) => (mesh: Mesh) => {
-    addMaterial(material, scene, mesh);
-    return mesh;
-  };
+const WALLS = [
+  {
+    position: new Vector3(0, 3, -25.5),
+    dimensions: new Vector3(50, 6, 1),
+  },
+  {
+    position: new Vector3(0, 3, 25.5),
+    dimensions: new Vector3(50, 6, 1),
+  },
+  {
+    position: new Vector3(-25.5, 3, 0),
+    dimensions: new Vector3(1, 6, 50),
+  },
+  {
+    position: new Vector3(25.5, 3, 0),
+    dimensions: new Vector3(1, 6, 50),
+  },
+];
+
+const generateColumnPositions = () => {
+  const columns = [];
+  for (let i = -19; i < 20; i++) {
+    for (let j = -19; j < 20; j++) {
+      if (i % 5 === 0 && j % 5 === 0 && !(i === 0 && j === 0)) {
+        columns.push({
+          position: { x: i, y: 2, z: j },
+          dimensions: new Vector3(2, 4, 2),
+        });
+      }
+    }
+  }
+  return columns;
+};
+
+const COLUMNS = generateColumnPositions();
 
 export const loadLevel = async (scene: Scene, engine: Engine) => {
-  const materialTo = doMaterialTo(scene);
-
   await addPhysics(scene, GRAVITY_VECTOR);
   addEnvironmentTexture(scene, ENVIRONMENT_TEXTURE_PATH);
 
   Hemispheric('hemispheric', scene)
-    .set(positionTo(new Vector3(0, 12, 0)))
+    .set(mesh.positionTo(new Vector3(0, 12, 0)))
     .set(intensityTo(0.5));
 
   Directional('direction', scene)
@@ -58,91 +89,50 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .set(intensityTo(5));
 
   Point('point', scene)
-    .set(positionTo(new Vector3(0, -1, 0)))
+    .set(mesh.positionTo(new Vector3(0, -1, 0)))
     .set(intensityTo(5));
 
   Spot('spot', scene)
-    .set(positionTo(new Vector3(0, 10, 0)))
+    .set(mesh.positionTo(new Vector3(0, 10, 0)))
     .set(directionTo(new Vector3(0, -1, 0)))
     .set(intensityTo(1))
     .set(angleTo(Math.PI / 6))
     .fold(exponentTo(10));
 
+  const materialTo = doMaterialTo(scene);
   Ground('ground', scene)
-    .set(sizeTo(GROUND_DIMENSIONS))
+    .set(mesh.sizeTo(GROUND_DIMENSIONS))
     .set(materialTo(GROUND_TEXTURE))
-    .set(checkCollisionsTo(true))
-    .set(physicsTo(GROUND_PHYSICS));
+    .set(mesh.boxPhysicsTo(GROUND_PHYSICS));
 
-  const walls = [
-    {
-      position: new Vector3(0, 3, -25.5),
-      dimensions: new Vector3(50, 6, 1),
-    },
-    {
-      position: new Vector3(0, 3, 25.5),
-      dimensions: new Vector3(50, 6, 1),
-    },
-    {
-      position: new Vector3(-25.5, 3, 0),
-      dimensions: new Vector3(1, 6, 50),
-    },
-    {
-      position: new Vector3(25.5, 3, 0),
-      dimensions: new Vector3(1, 6, 50),
-    },
-  ];
-
-  walls.map((wall, index) =>
+  WALLS.map((wall, index) =>
     Box(`wall-${index}`, scene)
-      .set(positionTo(wall.position))
-      .set(sizeTo(wall.dimensions))
-      .set(checkCollisionsTo(true))
+      .set(mesh.positionTo(wall.position))
+      .set(mesh.sizeTo(wall.dimensions))
+      .set(mesh.boxPhysicsTo({ mass: 0 }))
   );
-
-  const boxesPositions = [];
-  for (let i = -19; i < 20; i++) {
-    for (let j = -19; j < 20; j++) {
-      if (i % 5 === 0 && j % 5 === 0) {
-        boxesPositions.push({ x: i, y: j });
-      }
-    }
-  }
-
-  boxesPositions.map((position) => {
-    const { x, y } = position;
-    return Box(`box-${x}-${y}`, scene)
-      .set(sizeTo(new Vector3(2, 4, 2)))
-      .set(positionTo(new Vector3(x, 2, y)))
-      .set(materialTo(colorFromPosition(x, y)))
-      .set(checkCollisionsTo(true))
-      .set(physicsTo(BOX_PHYSICS));
+  COLUMNS.map((column) => {
+    const { x, y, z } = column.position;
+    Box(`column-${x}-${y}`, scene)
+      .set(mesh.sizeTo(column.dimensions))
+      .set(mesh.positionTo(new Vector3(x, y, z)))
+      .set(materialTo(colorFromPosition(x, z)))
+      .fold(mesh.boxPhysicsTo(BOX_PHYSICS));
   });
 
-  addPlayer(scene, new Vector3(0, 4, -18));
+  const head = Camera(scene, new Vector3(0, 2, 0))
+    .set(cam.targetTo(new Vector3(0, 2, 1)))
+    .fold(cam.minZto(0.01));
+  const body: Mesh = Sphere(`body`, scene)
+    .set(mesh.sizeTo(new Vector3(2, 2, 2)))
+    .set(mesh.positionTo(new Vector3(0, 1, 0)))
+    .set(mesh.visibleTo(false))
+    .fold(mesh.spherePhysicsTo({ mass: 1, friction: 0 }));
+  head.parent = body;
 
-  enablePointerLock(scene, engine, console.log);
-};
-
-export const directionTo =
-  (direction: Vector3) => (light: SpotLight | DirectionalLight) => {
-    light.direction = direction;
-    return light;
-  };
-export const intensityTo =
-  (intensity: number) => (light: SpotLight | DirectionalLight) => {
-    light.intensity = intensity;
-    return light;
-  };
-export const angleTo = (angle: number) => (light: SpotLight) => {
-  light.angle = angle;
-  return light;
-};
-export const exponentTo = (exponent: number) => (light: SpotLight) => {
-  light.exponent = exponent;
-  return light;
-};
-export const parentTo = (parent: Mesh | FreeCamera) => (mesh: Mesh) => {
-  mesh.parent = parent;
-  return mesh;
+  const playerController = doPlayerController(body, head);
+  scene.onPointerMove = playerController.mouse.handleMove;
+  scene.onKeyboardObservable.add(playerController.keyboard.registerInputs);
+  scene.registerBeforeRender(() => playerController.keyboard.move());
+  enablePointerLock(scene, engine, () => {});
 };

@@ -10,8 +10,7 @@ import {
 import { addGround, doAddBox, doAddSphere } from '../assets/meshes';
 import { addModel } from '../assets/models';
 import { addPhysics } from '../assets/physics';
-import { addPlayer } from '../assets/player';
-import { doPropel, doToggleMouseYAxis } from '../inputs/controls';
+import { doPlayerController } from '../inputs/controls';
 import {
   addInterpolateValueActionTo,
   addMeshActionTo,
@@ -30,6 +29,7 @@ import {
 import { hit } from '../logic/raycasting';
 import { doGiveColliderRedTexture } from '../logic/reactions';
 import { enablePointerLock } from '../logic/scene';
+import { Camera } from '../misc/camera';
 
 export const loadDemo = async (scene: Scene, engine: Engine) => {
   await addPhysics(scene, GRAVITY_VECTOR);
@@ -39,7 +39,7 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     'ground',
     { size: 40 },
     {
-      physics: { body: { mass: 0, restitution: 0.5 } },
+      physics: { body: { mass: 0, restitution: 0 } },
       material: { name: 'stone', uvScale: 4 },
     }
   );
@@ -86,16 +86,20 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     .to(new Vector3(Math.PI / 4, Math.PI / 4, Math.PI / 4))
     .within(3000);
 
-  const player = addPlayer(scene, new Vector3(0, 4, -18));
-  const playerMesh = addBox('playerMesh')
-    .positions({ x: 0, y: 2, z: -18 })
-    .dimensions({ x: 0.25, y: 5, z: 0.25 })
-    .rotations()
+  const head = Camera(scene, new Vector3(0, 2, 0)).fold();
+  const body = addBox('playerMesh')
+    .positions({ x: 0, y: 1, z: -18 })
+    .dimensions({ x: 1, y: 2, z: 1 })
+    .rotations({ x: 0, y: 0, z: 0 })
     .material()
-    .physics({ body: { mass: 0.5 } });
-  playerMesh.parent = player;
-  scene.onKeyboardObservable.add(doToggleMouseYAxis(player));
-  scene.onKeyboardObservable.add(doPropel(playerMesh));
+    .physics({ body: { mass: 1, friction: 0 } });
+  head.parent = body;
+  const { mouse: playerMouseController, keyboard: playerKeyboardController } =
+    doPlayerController(body, head);
+
+  scene.onPointerMove = playerMouseController.handleMove;
+  scene.onKeyboardObservable.add(playerKeyboardController.registerInputs);
+  scene.registerBeforeRender(() => playerKeyboardController.move());
 
   addHemisphericLight(scene, new Vector3(0, 12, 0), 5);
   addDirectionalLight(scene, new Vector3(0, -1, 0), 5);
@@ -193,5 +197,5 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     targetRotation();
     targetMovement();
   }
-  enablePointerLock(scene, engine, hit(targetSphere.name, scene, player));
+  enablePointerLock(scene, engine, hit(targetSphere.name, scene, head));
 };

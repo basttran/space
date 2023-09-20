@@ -5,6 +5,7 @@ import {
   HemisphericLight,
   Mesh,
   MeshBuilder,
+  PhysicsImpostor,
   PhysicsImpostorParameters,
   PointLight,
   Scene,
@@ -73,10 +74,9 @@ export type ThingContent =
   | PointLight
   | SpotLight;
 
-export const Thing = (content: ThingContent) => ({
+export const Thing = <T>(content: T) => ({
   set: (lambda: Function) => Thing(lambda(content)),
-  fold: (lambda: Function = (content: ThingContent) => content) =>
-    lambda(content),
+  fold: (lambda: Function = (content: T): T => content) => lambda(content),
   inspect: () => `Mesh(${content})`,
 });
 
@@ -87,47 +87,72 @@ export const Sphere = (name: string, scene: Scene) =>
 export const Ground = (name: string, scene: Scene) =>
   Thing(MeshBuilder.CreateGround(name, {}, scene));
 
-export const checkCollisionsTo = (checks: boolean) => (mesh: Mesh) => {
+export const doMaterialTo =
+  (scene: Scene) => (material: MeshAestheticOptions) => (mesh: Mesh) => {
+    addMaterial(material, scene, mesh);
+    return mesh;
+  };
+
+const checkCollisionsTo = (checks: boolean) => (mesh: Mesh) => {
   mesh.checkCollisions = checks;
   return mesh;
 };
-export const receiveShadowsTo = (receives: boolean) => (mesh: Mesh) => {
+const receiveShadowsTo = (receives: boolean) => (mesh: Mesh) => {
   mesh.receiveShadows = receives;
   return mesh;
 };
-export const visibleTo = (visible: boolean) => (mesh: Mesh) => {
+const visibleTo = (visible: boolean) => (mesh: Mesh) => {
   mesh.isVisible = visible;
   return mesh;
 };
-export const visibityTo = (visibility: number) => (mesh: Mesh) => {
+const visibityTo = (visibility: number) => (mesh: Mesh) => {
   mesh.visibility = Math.max(Math.min(visibility, 1), 0);
   return mesh;
 };
 
-export const positionTo = (position: Vector3) => (mesh: Mesh) => {
+const positionTo = (position: Vector3) => (mesh: Mesh) => {
   mesh.position = position;
   return mesh;
 };
 
-export const rotationTo = (rotation: Vector3) => (mesh: Mesh) => {
+const rotationTo = (rotation: Vector3) => (mesh: Mesh) => {
   mesh.rotation = rotation;
   return mesh;
 };
 
-export const physicsTo =
+const boxPhysicsTo = (physics: PhysicsImpostorParameters) => (mesh: Mesh) => {
+  mesh.physicsImpostor = new PhysicsImpostor(
+    mesh,
+    PhysicsImpostor.BoxImpostor,
+    physics
+  );
+  return mesh;
+};
+const spherePhysicsTo =
   (physics: PhysicsImpostorParameters) => (mesh: Mesh) => {
-    addPhysicsToMesh(mesh, physics);
+    mesh.physicsImpostor = new PhysicsImpostor(
+      mesh,
+      PhysicsImpostor.SphereImpostor,
+      physics
+    );
     return mesh;
   };
 
-export const sizeTo = (sizing: Vector3) => (mesh: Mesh) => {
-  const baseScaling = new Vector3(1, 1, 1);
-  if (mesh.scaling.equals(baseScaling)) {
-    mesh.scaling = sizing;
-  } else {
-    mesh.scaling = mesh.scaling.multiply(sizing); // not sure
-  }
+const sizeTo = (sizing: Vector3) => (mesh: Mesh) => {
+  mesh.scaling = sizing; // not sure
   return mesh;
+};
+
+export const meshModifiers = {
+  sizeTo,
+  spherePhysicsTo,
+  boxPhysicsTo,
+  rotationTo,
+  positionTo,
+  visibityTo,
+  visibleTo,
+  receiveShadowsTo,
+  checkCollisionsTo,
 };
 
 export const addBox = (

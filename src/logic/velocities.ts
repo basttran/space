@@ -7,6 +7,8 @@ import {
   Scene,
 } from '@babylonjs/core';
 
+export const SPEED = 0.2;
+
 export const rocketVelocityExample = async (
   scene: Scene,
   camera: FreeCamera
@@ -41,7 +43,6 @@ export const rocketVelocityExample = async (
   rocketColliderMesh.rotate(Vector3.Forward(), 1.5);
 
   const rocketVelocity = () => {
-    const SPEED = 10;
     if (rocketColliderMesh.physicsImpostor) {
       camera.position = new Vector3(
         rocketColliderMesh.position.x,

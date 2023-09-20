@@ -18,7 +18,7 @@ import { Thing } from './meshes';
 //   scene.shadowGenerator?.addShadowCaster(mesh);
 // };
 
-const ORIGIN = new Vector3(0, 0, 0);
+export const ORIGIN = new Vector3(0, 0, 0);
 
 export const Hemispheric = (name: string, scene: Scene) =>
   Thing(new HemisphericLight(name, ORIGIN, scene));
@@ -126,4 +126,23 @@ export const handleShadows = (light: SpotLight, meshes: Mesh[]) => {
     shadowGenerator.addShadowCaster(mesh);
     return mesh;
   });
+};
+
+export const directionTo =
+  (direction: Vector3) => (light: SpotLight | DirectionalLight) => {
+    light.direction = direction;
+    return light;
+  };
+export const intensityTo =
+  (intensity: number) => (light: SpotLight | DirectionalLight) => {
+    light.intensity = intensity;
+    return light;
+  };
+export const angleTo = (angle: number) => (light: SpotLight) => {
+  light.angle = angle;
+  return light;
+};
+export const exponentTo = (exponent: number) => (light: SpotLight) => {
+  light.exponent = exponent;
+  return light;
 };

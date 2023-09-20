@@ -1,19 +1,20 @@
-import { ArcRotateCamera, Mesh, Vector3 } from "@babylonjs/core";
+import { FreeCamera, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
+import { Thing } from '../assets/meshes';
 
-export const setCamera = (canvas: WebGLRenderingContext) => {
-  const camera = new ArcRotateCamera(
-    "camera",
-    -Math.PI / 2,
-    Math.PI / 2.5,
-    10,
-    new Vector3(0, 0, 0)
-  );
-  camera.attachControl(canvas, true);
-  camera.speed = 0.25;
+export const Camera = (scene: Scene, position: Vector3) =>
+  Thing(new UniversalCamera('camera', position, scene));
 
-  return {
-    bindTo: (parent: Mesh) => {
-      camera.parent = parent;
-    },
-  };
+const targetTo = (target: Vector3) => (camera: FreeCamera) => {
+  camera.setTarget(target);
+  return camera;
+};
+
+const minZto = (minZ: number) => (camera: UniversalCamera) => {
+  camera.minZ = minZ;
+  return camera;
+};
+
+export const cameraModifiers = {
+  targetTo,
+  minZto,
 };
