@@ -1,5 +1,5 @@
 import { FreeCamera, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
-import { Thing } from '../assets/meshes';
+import { Thing } from './meshes';
 
 export const Camera = (scene: Scene, position: Vector3) =>
   Thing(new UniversalCamera('camera', position, scene));

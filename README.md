@@ -1,8 +1,6 @@
 # A sandbox repo for experimenting with babylon js
 
----
-
-## Code is live [here](https://basttran.github.io/space/)
+Code is live [here](https://basttran.github.io/space/)
 
 ## Base controls
 

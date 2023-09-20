@@ -11,12 +11,17 @@ export const doGiveCollidedRedTexture =
     const redMat = new StandardMaterial('red', scene);
     redMat.diffuseColor = new Color3(1, 0, 0);
     (collided.object as AbstractMesh).material = redMat;
-    // (collided.object as AbstractMesh).isVisible = true;
   };
 export const doGiveColliderRedTexture =
   (scene: Scene) => (collider: PhysicsImpostor, _collided: PhysicsImpostor) => {
     const redMat = new StandardMaterial('red', scene);
     redMat.diffuseColor = new Color3(1, 0, 0);
     (collider.object as AbstractMesh).material = redMat;
-    // (collider.object as AbstractMesh).isVisible = true;
+  };
+export const doGiveCollideesRedTexture =
+  (scene: Scene) => (collider: PhysicsImpostor, collided: PhysicsImpostor) => {
+    const redMat = new StandardMaterial('red', scene);
+    redMat.diffuseColor = new Color3(1, 0, 0);
+    (collider.object as AbstractMesh).material = redMat;
+    (collided.object as AbstractMesh).material = redMat;
   };

@@ -69,14 +69,16 @@ export const doPlayerController = (player: Mesh, camera: UniversalCamera) => {
           }
         }
       },
+    },
+    player: {
       move: () => {
         const { forward, right } = player;
         const yVelocity = yComputedVelocity(state, player);
         const xVelocity = xComputedVelocity(forward, state);
         const zVelocity = zComputedVelocity(right, state);
-        const velocity = horizontalVelocity(xVelocity, zVelocity, SPEED)
-          .add(GRAVITY_VECTOR)
-          .add(yVelocity);
+        const velocity = horizontalVelocity(xVelocity, zVelocity, SPEED).add(
+          verticalVelocity(GRAVITY_VECTOR, yVelocity)
+        );
         player.physicsImpostor?.setLinearVelocity(velocity);
       },
     },
@@ -100,18 +102,21 @@ const horizontalVelocity = (
 ) => {
   return xVelocity.add(zVelocity).normalize().scale(SPEED);
 };
+const verticalVelocity = (gravity: Vector3, yVelocity: Vector3) => {
+  return gravity.add(yVelocity);
+};
 
-const yComputedVelocity = (state: PlayerState, player: Mesh) => {
+const yComputedVelocity = (state: PlayerState, player: Mesh): Vector3 => {
   return state.up === true ? player.up.scale(15) : new Vector3(0, 0, 0);
 };
 
-const zComputedVelocity = (right: Vector3, state: PlayerState) => {
+const zComputedVelocity = (right: Vector3, state: PlayerState): Vector3 => {
   return right
     .scale(Number(state.right))
     .add(right.scale(-1 * Number(state.left)));
 };
 
-const xComputedVelocity = (forward: Vector3, state: PlayerState) => {
+const xComputedVelocity = (forward: Vector3, state: PlayerState): Vector3 => {
   return forward
     .scale(Number(state.forward))
     .add(forward.scale(-1 * Number(state.backward)));

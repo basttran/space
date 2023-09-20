@@ -27,10 +27,10 @@ import {
 import { addPhysics } from '../assets/physics';
 import { doPlayerController } from '../inputs/controls';
 import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from '../logic//game';
-import { Camera, cameraModifiers as cam } from '../misc/camera';
+import { Camera, cameraModifiers as cam } from '../assets/camera';
 import { enablePointerLock } from './scene';
 
-const GROUND_DIMENSIONS = new Vector3(50, 50, 50);
+const GROUND_DIMENSIONS = new Vector3(50, 0, 50);
 const GROUND_TEXTURE = { name: 'stone', uvScale: 4 };
 const BOX_PHYSICS: PhysicsImpostorParameters = {
   mass: 1,
@@ -130,9 +130,9 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     .fold(mesh.spherePhysicsTo({ mass: 1, friction: 0 }));
   head.parent = body;
 
-  const playerController = doPlayerController(body, head);
-  scene.onPointerMove = playerController.mouse.handleMove;
-  scene.onKeyboardObservable.add(playerController.keyboard.registerInputs);
-  scene.registerBeforeRender(() => playerController.keyboard.move());
+  const { mouse, keyboard, player } = doPlayerController(body, head);
+  scene.onPointerMove = mouse.handleMove;
+  scene.onKeyboardObservable.add(keyboard.registerInputs);
+  scene.registerBeforeRender(() => player.move());
   enablePointerLock(scene, engine, () => {});
 };
