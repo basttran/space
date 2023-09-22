@@ -5,6 +5,7 @@ import {
   Scene,
   Vector3,
 } from '@babylonjs/core';
+import { Camera, cameraModifiers as cam } from '../assets/camera';
 import { colorFromPosition } from '../assets/colors';
 import { addEnvironmentTexture } from '../assets/environment';
 import {
@@ -20,20 +21,18 @@ import {
 import {
   Box,
   Ground,
-  Sphere,
   doMaterialTo,
   meshModifiers as mesh,
 } from '../assets/meshes';
 import { addPhysics } from '../assets/physics';
 import { doPlayerController } from '../inputs/controls';
 import { ENVIRONMENT_TEXTURE_PATH, GRAVITY_VECTOR } from '../logic//game';
-import { Camera, cameraModifiers as cam } from '../assets/camera';
 import { enablePointerLock } from './scene';
 
-const GROUND_DIMENSIONS = new Vector3(50, 0, 50);
+const GROUND_DIMENSIONS = new Vector3(50, 1, 50);
 const GROUND_TEXTURE = { name: 'stone', uvScale: 4 };
 const BOX_PHYSICS: PhysicsImpostorParameters = {
-  mass: 1,
+  mass: 0,
   restitution: 0,
 };
 const GROUND_PHYSICS: PhysicsImpostorParameters = {
@@ -65,7 +64,7 @@ const generateColumnPositions = () => {
     for (let j = -19; j < 20; j++) {
       if (i % 5 === 0 && j % 5 === 0 && !(i === 0 && j === 0)) {
         columns.push({
-          position: { x: i, y: 2, z: j },
+          position: new Vector3(i, 2, j),
           dimensions: new Vector3(2, 4, 2),
         });
       }
@@ -109,23 +108,22 @@ export const loadLevel = async (scene: Scene, engine: Engine) => {
     Box(`wall-${index}`, scene)
       .set(mesh.positionTo(wall.position))
       .set(mesh.sizeTo(wall.dimensions))
-      .set(mesh.boxPhysicsTo({ mass: 0 }))
+      .fold(mesh.boxPhysicsTo({ mass: 0 }))
   );
-  COLUMNS.map((column) => {
-    const { x, y, z } = column.position;
-    Box(`column-${x}-${y}`, scene)
+  COLUMNS.forEach((column) => {
+    const { x, z } = column.position;
+    Box(`column-${x}-${z}`, scene)
       .set(mesh.sizeTo(column.dimensions))
-      .set(mesh.positionTo(new Vector3(x, y, z)))
+      .set(mesh.positionTo(column.position))
       .set(materialTo(colorFromPosition(x, z)))
       .fold(mesh.boxPhysicsTo(BOX_PHYSICS));
   });
 
-  const head = Camera(scene, new Vector3(0, 2, 0))
+  const head = Camera(scene, new Vector3(0, 4, 0))
     .set(cam.targetTo(new Vector3(0, 2, 1)))
     .fold(cam.minZto(0.01));
-  const body: Mesh = Sphere(`body`, scene)
-    .set(mesh.sizeTo(new Vector3(2, 2, 2)))
-    .set(mesh.positionTo(new Vector3(0, 1, 0)))
+  const body: Mesh = Box(`body`, scene, { width: 0.5, height: 4, depth: 0.5 })
+    .set(mesh.positionTo(new Vector3(0, 2, 0)))
     .set(mesh.visibleTo(false))
     .fold(mesh.spherePhysicsTo({ mass: 1, friction: 0 }));
   head.parent = body;

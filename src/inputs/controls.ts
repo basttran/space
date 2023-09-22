@@ -7,6 +7,7 @@ import {
   Vector3,
 } from '@babylonjs/core';
 import { GRAVITY_VECTOR } from '../logic/game';
+import { FRAMES_PER_SECOND, GRAVITY } from '../assets/physics';
 
 type PlayerState = {
   forward: boolean;
@@ -25,7 +26,7 @@ export const doPlayerController = (player: Mesh, camera: UniversalCamera) => {
     left: false,
     right: false,
     up: false,
-    yFactor: 1,
+    yFactor: -1,
   };
 
   return {
@@ -63,18 +64,16 @@ export const doPlayerController = (player: Mesh, camera: UniversalCamera) => {
         if (event.key === ' ') {
           if (state.up === false && type === 1 && canJump(player)) {
             state.up = true;
-            setTimeout(() => {
-              state.up = false;
-            }, 750);
           }
         }
       },
     },
     player: {
       move: () => {
-        const { forward, right } = player;
-        const yVelocity = yComputedVelocity(state, player);
+        const { forward, right, up } = player;
+        const yVelocity = yComputedVelocity(up, state);
         const xVelocity = xComputedVelocity(forward, state);
+        console.log('xVelocity: ', xVelocity);
         const zVelocity = zComputedVelocity(right, state);
         const velocity = horizontalVelocity(xVelocity, zVelocity, SPEED).add(
           verticalVelocity(GRAVITY_VECTOR, yVelocity)
@@ -86,7 +85,7 @@ export const doPlayerController = (player: Mesh, camera: UniversalCamera) => {
 };
 
 const canJump = (player: Mesh) => {
-  return player.position.y < 1.2;
+  return player.position.y < 2.02;
 };
 const xCalculatedRotation = (
   camera: UniversalCamera,
@@ -106,8 +105,26 @@ const verticalVelocity = (gravity: Vector3, yVelocity: Vector3) => {
   return gravity.add(yVelocity);
 };
 
-const yComputedVelocity = (state: PlayerState, player: Mesh): Vector3 => {
-  return state.up === true ? player.up.scale(15) : new Vector3(0, 0, 0);
+const doHandleJump = () => {
+  let count = FRAMES_PER_SECOND;
+  return (state: PlayerState) => {
+    if (state.up === false) {
+      return 0;
+    }
+    if (count <= 0) {
+      count = FRAMES_PER_SECOND;
+      state.up = false;
+      return 0;
+    }
+    count--;
+    console.log('count: ', count);
+    return GRAVITY * -2.5 * (count / FRAMES_PER_SECOND);
+  };
+};
+const handleJump = doHandleJump();
+
+const yComputedVelocity = (up: Vector3, state: PlayerState): Vector3 => {
+  return state.up === true ? up.scale(handleJump(state)) : new Vector3(0, 0, 0);
 };
 
 const zComputedVelocity = (right: Vector3, state: PlayerState): Vector3 => {

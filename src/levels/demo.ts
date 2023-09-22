@@ -1,13 +1,13 @@
 import {
   Color3,
   Engine,
-  GroundMesh,
   Mesh,
   PhysicsImpostorParameters,
   Scene,
   Vector3,
 } from '@babylonjs/core';
 import { doCreateAnimationTriggerFor } from '../assets/animations';
+import { Camera, cameraModifiers as cam } from '../assets/camera';
 import { addEnvironmentTexture } from '../assets/environment';
 import {
   addDirectionalLight,
@@ -15,6 +15,13 @@ import {
   addPointLight,
   addSpotLight,
 } from '../assets/lights';
+import {
+  Box,
+  Ground,
+  Sphere,
+  doMaterialTo,
+  meshModifiers as mesh,
+} from '../assets/meshes';
 import { addModel } from '../assets/models';
 import { addPhysics } from '../assets/physics';
 import { doPlayerController } from '../inputs/controls';
@@ -36,15 +43,8 @@ import {
 import { hit } from '../logic/raycasting';
 import { doGiveColliderRedTexture } from '../logic/reactions';
 import { enablePointerLock } from '../logic/scene';
-import { Camera } from '../assets/camera';
-import {
-  Box,
-  Ground,
-  Sphere,
-  doMaterialTo,
-  meshModifiers,
-} from '../assets/meshes';
 
+const GROUND_DIMENSIONS = new Vector3(50, 1, 50);
 const GROUND_TEXTURE = { name: 'stone', uvScale: 4 };
 const GROUND_PHYSICS: PhysicsImpostorParameters = {
   mass: 0,
@@ -53,21 +53,35 @@ const GROUND_PHYSICS: PhysicsImpostorParameters = {
 export const loadDemo = async (scene: Scene, engine: Engine) => {
   await addPhysics(scene, GRAVITY_VECTOR);
   addEnvironmentTexture(scene, ENVIRONMENT_TEXTURE_PATH);
+
+  addHemisphericLight(scene, new Vector3(0, 12, 0), 5);
+  addDirectionalLight(scene, new Vector3(0, -1, 0), 5);
+  addPointLight(scene, new Vector3(0, -1, 0), 5);
+  addSpotLight(
+    scene,
+    new Vector3(0, 3, -3),
+    new Vector3(0, -1, 1),
+    5,
+    Math.PI / 2,
+    20
+  );
+
   const materialTo = doMaterialTo(scene);
 
   const ground = Ground('ground', scene)
-    .set(meshModifiers.sizeTo(new Vector3(40, 0, 40)))
+    .set(mesh.sizeTo(GROUND_DIMENSIONS))
     .set(materialTo(GROUND_TEXTURE))
-    .fold(meshModifiers.boxPhysicsTo(GROUND_PHYSICS));
+    .fold(mesh.boxPhysicsTo(GROUND_PHYSICS));
 
   const actionBox = Box('actionBox', scene)
-    .set(meshModifiers.positionTo(new Vector3(0, 4, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
-    .set(materialTo({ name: 'metal', uvScale: 3 }))
-    .fold(meshModifiers.boxPhysicsTo({ mass: 0 }));
+    .set(mesh.positionTo(new Vector3(0, 4, 15)))
+    .set(mesh.sizeTo(new Vector3(4, 4, 4)))
+    .set(materialTo({ name: 'metal', uvScale: 4 }))
+    .fold(mesh.boxPhysicsTo({ mass: 0 }));
+
   const collateralBox = Box('collateralBox', scene)
-    .set(meshModifiers.positionTo(new Vector3(6, 4, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
+    .set(mesh.positionTo(new Vector3(6, 4, 15)))
+    .set(mesh.sizeTo(new Vector3(4, 4, 4)))
     .fold(materialTo({ name: 'metal', uvScale: 3 }));
 
   actionBox.checkCollisions = true;
@@ -82,10 +96,10 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     .to(SHRUNK_BOX_SCALE);
 
   const interpolateActionBox = Box('interpolateActionBox', scene)
-    .set(meshModifiers.positionTo(new Vector3(-6, 4, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
-    .fold(materialTo({ name: new Color3(0, 0, 1), uvScale: 3 }))
-    .fold(meshModifiers.boxPhysicsTo({ mass: 0 }));
+    .set(mesh.positionTo(new Vector3(-6, 4, 15)))
+    .set(mesh.sizeTo(new Vector3(4, 4, 4)))
+    .set(materialTo({ name: new Color3(0, 0, 1), uvScale: 3 }))
+    .fold(mesh.boxPhysicsTo({ mass: 0 }));
 
   addInterpolateValueActionTo(scene)
     .when('OnRightPickTrigger')
@@ -95,36 +109,20 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     .to(new Vector3(Math.PI / 4, Math.PI / 4, Math.PI / 4))
     .within(3000);
 
-  const head = Camera(scene, new Vector3(0, 2, 0)).fold();
-
-  const body = Box('body', scene)
-    .set(meshModifiers.positionTo(new Vector3(0, 1, -18)))
-    .set(meshModifiers.sizeTo(new Vector3(1, 2, 1)))
-    .set(meshModifiers.rotationTo(new Vector3(0, 0, 0)))
-    .fold(meshModifiers.boxPhysicsTo({ mass: 1, friction: 0 }));
-
+  const head = Camera(scene, new Vector3(0, 2, 0))
+    .set(cam.targetTo(new Vector3(0, 2, 1)))
+    .fold(cam.minZto(0.01));
+  const body: Mesh = Sphere(`body`, scene)
+    .set(mesh.sizeTo(new Vector3(2, 2, 2)))
+    .set(mesh.positionTo(new Vector3(0, 1, 0)))
+    .set(mesh.visibleTo(false))
+    .fold(mesh.spherePhysicsTo({ mass: 1, friction: 0 }));
   head.parent = body;
-  const {
-    mouse: playerMouseController,
-    keyboard: playerKeyboardController,
-    player,
-  } = doPlayerController(body, head);
 
-  scene.onPointerMove = playerMouseController.handleMove;
-  scene.onKeyboardObservable.add(playerKeyboardController.registerInputs);
+  const { mouse, keyboard, player } = doPlayerController(body, head);
+  scene.onPointerMove = mouse.handleMove;
+  scene.onKeyboardObservable.add(keyboard.registerInputs);
   scene.registerBeforeRender(() => player.move());
-
-  addHemisphericLight(scene, new Vector3(0, 12, 0), 5);
-  addDirectionalLight(scene, new Vector3(0, -1, 0), 5);
-  addPointLight(scene, new Vector3(0, -1, 0), 5);
-  addSpotLight(
-    scene,
-    new Vector3(0, 3, -3),
-    new Vector3(0, -1, 1),
-    5,
-    Math.PI / 2,
-    20
-  );
 
   addSceneActionTo(scene)
     .when('OnEveryFrameTrigger')
@@ -133,10 +131,10 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     .by(0.02);
 
   const collidingBox = Box('collidingBox', scene)
-    .set(meshModifiers.positionTo(new Vector3(-12, 12, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
+    .set(mesh.positionTo(new Vector3(-12, 30, 15)))
+    .set(mesh.sizeTo(new Vector3(4, 4, 4)))
     .set(materialTo({ name: new Color3(0, 0, 1), uvScale: 4 }))
-    .fold(meshModifiers.boxPhysicsTo({ mass: 1, restitution: 0.5 }));
+    .fold(mesh.boxPhysicsTo({ mass: 1, restitution: 0.5 }));
 
   collidingBox.checkCollisions = true;
 
@@ -145,27 +143,25 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
     .triggers(doGiveColliderRedTexture(scene));
 
   const winSphere = Sphere('winSphere', scene)
-    .set(meshModifiers.positionTo(new Vector3(12, 20, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(2, 2, 2)))
+    .set(mesh.positionTo(new Vector3(12, 30, 15)))
+    .set(mesh.sizeTo(new Vector3(2, 2, 2)))
     .set(materialTo({ name: 'stone', uvScale: 2 }))
-    .fold(meshModifiers.spherePhysicsTo({ mass: 1, restitution: 1 }));
+    .fold(mesh.spherePhysicsTo({ mass: 1, restitution: 1 }));
 
   const winBox = Box('winBox', scene)
-    .set(meshModifiers.positionTo(new Vector3(12, 1, 15)))
-    .set(meshModifiers.sizeTo(new Vector3(4, 2, 4)))
+    .set(mesh.positionTo(new Vector3(12, 1, 15)))
+    .set(mesh.sizeTo(new Vector3(4, 2, 4)))
     .set(materialTo({ name: new Color3(0, 1, 0), uvScale: 4 }))
-    .set(meshModifiers.visibityTo(0.7))
-    .fold(meshModifiers.boxPhysicsTo({ mass: 1, friction: 0 }));
+    .fold(mesh.visibityTo(0.7));
 
-  winBox.visibility = 0.7;
   const onFirstIntersectionBetween = doOnFirstIntersectionBetween(scene);
   onFirstIntersectionBetween(winSphere).and(winBox).triggers(hideIntersected);
 
   const targetSphere = Sphere('targetSphere', scene)
-    .set(meshModifiers.positionTo(new Vector3(0, 2.5, 10)))
-    .set(meshModifiers.sizeTo(new Vector3(5, 5, 5)))
+    .set(mesh.positionTo(new Vector3(0, 2.5, -16)))
+    .set(mesh.sizeTo(new Vector3(5, 5, 5)))
     .set(materialTo({ name: new Color3(0.5, 0.6, 0.1), uvScale: 4 }))
-    .fold(meshModifiers.spherePhysicsTo({ mass: 0 }));
+    .fold(mesh.spherePhysicsTo({ mass: 0 }));
 
   const createAnimationTriggerFor = doCreateAnimationTriggerFor(scene);
 
@@ -181,8 +177,8 @@ export const loadDemo = async (scene: Scene, engine: Engine) => {
   );
   if (target) {
     target.position.y = 3.5;
-    target.position.z = -12;
-    target.rotation.y = (Math.PI * 3) / 2;
+    target.position.z = -6;
+    target.rotation.y = Math.PI / 2;
     const targetRotation = createAnimationTriggerFor('rotation.x')
       .of(target)
       .as('rotation')

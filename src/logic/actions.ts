@@ -9,7 +9,7 @@ import {
   Vector3,
   Color3,
 } from '@babylonjs/core';
-import { addBox, addSphere } from '../assets/meshes';
+import { Box, Sphere, doMaterialTo, meshModifiers } from '../assets/meshes';
 
 export const WHEN = {
   NothingTrigger: 0,
@@ -215,17 +215,12 @@ export const addSceneActionTo = (scene: Scene, togglable: boolean = true) => {
 };
 
 export const meshActionsExample = (scene: Scene) => {
-  const box = addBox(
-    scene,
-    'switch',
-    {
-      positions: { x: 0, y: 2, z: 11 },
-      dimensions: 4,
-    },
-    {
-      material: { name: 'metal', uvScale: 3 },
-    }
-  );
+  const materialTo = doMaterialTo(scene);
+  const box = Box('switch', scene)
+    .set(meshModifiers.positionTo(new Vector3(0, 2, 11)))
+    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
+    .set(meshModifiers.sizeTo(new Vector3(4, 4, 4)))
+    .fold(materialTo({ name: 'metal', uvScale: 3 }));
 
   addMeshActionTo(scene)
     .when('OnPickDownTrigger')
@@ -238,10 +233,9 @@ export const meshActionsExample = (scene: Scene) => {
   sphereMat.diffuseColor = new Color3(1, 0, 0);
   sphereMat.roughness = 1;
 
-  const sphere = addSphere(scene, 'cameleon', {
-    positions: { x: 5, y: 2, z: 11 },
-    dimensions: 2,
-  });
+  const sphere = Sphere('cameleon', scene)
+    .set(meshModifiers.positionTo(new Vector3(5, 2, 11)))
+    .fold(meshModifiers.sizeTo(new Vector3(2, 2, 2)));
 
   sphere.material = sphereMat;
 

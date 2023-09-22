@@ -33,38 +33,29 @@ const createEngine = (canvas: HTMLCanvasElement) => {
   });
   return engine;
 };
+const doChangeScene =
+  (scene: Scene, engine: Engine) => async (e: KeyboardInfo) => {
+    if (e.event.key === '&') {
+      await load(engine, scene, loadLevel);
+    }
+    if (e.event.key === 'é') {
+      await load(engine, scene, loadDemo);
+    }
+  };
 
 export const runGame = async (canvas: HTMLCanvasElement) => {
   const engine = createEngine(canvas);
   const scene = await createScene(engine);
-  await loadLevel(scene, engine);
-  scene.onKeyboardObservable.add(doChangeScene(scene, engine));
-  engine.runRenderLoop(() => {
-    scene.render();
-  });
+  await load(engine, scene, loadLevel);
 };
 
-const doChangeScene =
-  (scene: Scene, engine: Engine) => async (e: KeyboardInfo) => {
-    console.log('e.event.key: ', e.event.key);
-    if (e.event.key === '&') {
-      engine.stopRenderLoop();
-      scene.dispose();
-      const newScene = await createScene(engine);
-      await loadLevel(newScene, engine);
-      newScene.onKeyboardObservable.add(doChangeScene(newScene, engine));
-      engine.runRenderLoop(() => {
-        newScene.render();
-      });
-    }
-    if (e.event.key === 'é') {
-      engine.stopRenderLoop();
-      scene.dispose();
-      const newScene = await createScene(engine);
-      await loadDemo(newScene, engine);
-      newScene.onKeyboardObservable.add(doChangeScene(newScene, engine));
-      engine.runRenderLoop(() => {
-        newScene.render();
-      });
-    }
-  };
+const load = async (engine: Engine, scene: Scene, demo: Function) => {
+  engine.stopRenderLoop();
+  scene.dispose();
+  const newScene = await createScene(engine);
+  await demo(newScene, engine);
+  newScene.onKeyboardObservable.add(doChangeScene(newScene, engine));
+  engine.runRenderLoop(() => {
+    newScene.render();
+  });
+};

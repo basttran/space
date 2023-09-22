@@ -20,7 +20,7 @@ Close to no interactions available. Exists mostly for working on the 'player' im
 
 # Demo 2 :
 
-Exists mostly in order to train with animations/interactions.
+Exists mostly in order to train with animations/interactions. It is possible to interact with some meshes through pointerdown events.
 Examples here are heavily inspired if not copied from [those kindly published](https://github.com/Babylon-Projects/Babylon_101) by [@jgonzosan](https://github.com/jgonzosan) alongside [this tutorial](https://www.youtube.com/playlist?list=PLym1B0rdkvqhuCNSXzxw6ofEkrpYI70P4)
 
 # TODO
